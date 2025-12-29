@@ -21,7 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,7 +46,10 @@ I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 
 /* USER CODE BEGIN PV */
-
+uint8_t i2c1_devices[128];
+uint8_t i2c1_device_count = 0;
+uint8_t i2c2_devices[128];
+uint8_t i2c2_device_count = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,6 +63,21 @@ static void MX_I2C2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void I2C_Scan_Bus(I2C_HandleTypeDef *hi2c, uint8_t *device_list, uint8_t *device_count)
+{
+    *device_count = 0;
+
+    for(uint8_t i = 1; i < 128; i++)
+    {
+        if(HAL_I2C_IsDeviceReady(hi2c, (uint16_t)(i<<1), 3, 5) == HAL_OK)
+        {
+            device_list[*device_count] = i;
+            (*device_count)++;
+        }
+        HAL_Delay(2);
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -93,6 +113,10 @@ int main(void)
   MX_I2C1_Init();
   MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
+
+  // Scan I2C buses for connected devices
+  I2C_Scan_Bus(&hi2c1, i2c1_devices, &i2c1_device_count);
+  I2C_Scan_Bus(&hi2c2, i2c2_devices, &i2c2_device_count);
 
   /* USER CODE END 2 */
 

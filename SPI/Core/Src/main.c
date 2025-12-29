@@ -21,7 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,7 +33,16 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+// NSS pin definitions
+#define SPI1_NSS_PORT GPIOA
+#define SPI1_NSS_PIN  GPIO_PIN_4
+#define SPI2_NSS_PORT GPIOB
+#define SPI2_NSS_PIN  GPIO_PIN_12
 
+// Common SPI device register addresses to test
+#define WHO_AM_I_REG    0x0F
+#define DEVICE_ID_REG   0x00
+#define STATUS_REG      0x07
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -44,7 +55,16 @@ SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
 
 /* USER CODE BEGIN PV */
+typedef struct {
+    uint8_t device_id;
+    uint8_t who_am_i;
+    uint8_t status;
+    uint8_t responsive;
+} SPI_Device_Info;
 
+SPI_Device_Info spi1_device;
+SPI_Device_Info spi2_device;
+char debug_output[256];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,6 +78,51 @@ static void MX_SPI2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+uint8_t SPI_ReadRegister(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nss_port, uint16_t nss_pin, uint8_t reg_addr)
+{
+    uint8_t tx_data[2] = {reg_addr | 0x80, 0x00};  // Set read bit (MSB)
+    uint8_t rx_data[2] = {0};
+
+    HAL_GPIO_WritePin(nss_port, nss_pin, GPIO_PIN_RESET);  // CS Low
+    HAL_Delay(1);
+    HAL_SPI_TransmitReceive(hspi, tx_data, rx_data, 2, 100);
+    HAL_GPIO_WritePin(nss_port, nss_pin, GPIO_PIN_SET);    // CS High
+
+    return rx_data[1];
+}
+
+void SPI_ScanDevice(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nss_port, uint16_t nss_pin,
+                    SPI_Device_Info *dev_info, const char *bus_name)
+{
+    memset(dev_info, 0, sizeof(SPI_Device_Info));
+
+    sprintf(debug_output, "\r\n--- Scanning %s ---\r\n", bus_name);
+
+    // Try reading common registers
+    dev_info->device_id = SPI_ReadRegister(hspi, nss_port, nss_pin, DEVICE_ID_REG);
+    HAL_Delay(5);
+
+    dev_info->who_am_i = SPI_ReadRegister(hspi, nss_port, nss_pin, WHO_AM_I_REG);
+    HAL_Delay(5);
+
+    dev_info->status = SPI_ReadRegister(hspi, nss_port, nss_pin, STATUS_REG);
+    HAL_Delay(5);
+
+    // Check if device is responsive (not all 0x00 or all 0xFF)
+    if ((dev_info->device_id != 0x00 && dev_info->device_id != 0xFF) ||
+        (dev_info->who_am_i != 0x00 && dev_info->who_am_i != 0xFF) ||
+        (dev_info->status != 0x00 && dev_info->status != 0xFF))
+    {
+        dev_info->responsive = 1;
+        sprintf(debug_output, "%s: Device detected!\r\n  Device ID: 0x%02X\r\n  WHO_AM_I: 0x%02X\r\n  Status: 0x%02X\r\n",
+                bus_name, dev_info->device_id, dev_info->who_am_i, dev_info->status);
+    }
+    else
+    {
+        sprintf(debug_output, "%s: No device detected or not responding\r\n", bus_name);
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -93,6 +158,13 @@ int main(void)
   MX_SPI1_Init();
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
+
+  // Scan SPI buses for connected devices
+  SPI_ScanDevice(&hspi1, SPI1_NSS_PORT, SPI1_NSS_PIN, &spi1_device, "SPI1");
+  HAL_Delay(100);
+
+  SPI_ScanDevice(&hspi2, SPI2_NSS_PORT, SPI2_NSS_PIN, &spi2_device, "SPI2");
+  HAL_Delay(100);
 
   /* USER CODE END 2 */
 

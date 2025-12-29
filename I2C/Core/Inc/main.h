@@ -53,7 +53,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void I2C_Scan_Bus(I2C_HandleTypeDef *hi2c, uint8_t *device_list, uint8_t *device_count);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

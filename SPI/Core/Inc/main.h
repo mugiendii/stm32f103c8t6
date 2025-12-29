@@ -31,12 +31,17 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+typedef struct {
+    uint8_t device_id;
+    uint8_t who_am_i;
+    uint8_t status;
+    uint8_t responsive;
+} SPI_Device_Info;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -53,7 +58,9 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+uint8_t SPI_ReadRegister(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nss_port, uint16_t nss_pin, uint8_t reg_addr);
+void SPI_ScanDevice(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nss_port, uint16_t nss_pin,
+                    SPI_Device_Info *dev_info, const char *bus_name);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
