@@ -21,7 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,7 +47,9 @@ UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
-
+uint8_t rx_buffer[256];
+uint8_t rx_data;
+char tx_buffer[256];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -60,6 +64,66 @@ static void MX_USART3_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void UART_Print(UART_HandleTypeDef *huart, const char *msg)
+{
+    HAL_UART_Transmit(huart, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+}
+
+void UART_PrintInfo(void)
+{
+    sprintf(tx_buffer, "\r\n========================================\r\n");
+    UART_Print(&huart1, tx_buffer);
+
+    sprintf(tx_buffer, "STM32F103C8T6 UART Communication Test\r\n");
+    UART_Print(&huart1, tx_buffer);
+
+    sprintf(tx_buffer, "========================================\r\n");
+    UART_Print(&huart1, tx_buffer);
+
+    sprintf(tx_buffer, "USART1: 115200 baud, 8N1 - Primary\r\n");
+    UART_Print(&huart1, tx_buffer);
+
+    sprintf(tx_buffer, "USART2: 115200 baud, 8N1 - Secondary\r\n");
+    UART_Print(&huart1, tx_buffer);
+
+    sprintf(tx_buffer, "USART3: 115200 baud, 8N1 - Tertiary\r\n");
+    UART_Print(&huart1, tx_buffer);
+
+    sprintf(tx_buffer, "========================================\r\n");
+    UART_Print(&huart1, tx_buffer);
+
+    sprintf(tx_buffer, "Ready! Send data to test echo...\r\n\r\n");
+    UART_Print(&huart1, tx_buffer);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if(huart->Instance == USART1)
+    {
+        // Echo back on USART1
+        HAL_UART_Transmit(&huart1, &rx_data, 1, 10);
+
+        // Also forward to USART2 and USART3
+        HAL_UART_Transmit(&huart2, &rx_data, 1, 10);
+        HAL_UART_Transmit(&huart3, &rx_data, 1, 10);
+
+        // Re-enable receive interrupt
+        HAL_UART_Receive_IT(&huart1, &rx_data, 1);
+    }
+    else if(huart->Instance == USART2)
+    {
+        // Echo back on USART2
+        HAL_UART_Transmit(&huart2, &rx_data, 1, 10);
+        HAL_UART_Receive_IT(&huart2, &rx_data, 1);
+    }
+    else if(huart->Instance == USART3)
+    {
+        // Echo back on USART3
+        HAL_UART_Transmit(&huart3, &rx_data, 1, 10);
+        HAL_UART_Receive_IT(&huart3, &rx_data, 1);
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -96,6 +160,15 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+
+  // Print UART information and startup message
+  HAL_Delay(100);
+  UART_PrintInfo();
+
+  // Enable UART receive interrupts for all UARTs
+  HAL_UART_Receive_IT(&huart1, &rx_data, 1);
+  HAL_UART_Receive_IT(&huart2, &rx_data, 1);
+  HAL_UART_Receive_IT(&huart3, &rx_data, 1);
 
   /* USER CODE END 2 */
 

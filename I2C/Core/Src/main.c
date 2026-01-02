@@ -70,12 +70,13 @@ void I2C_Scan_Bus(I2C_HandleTypeDef *hi2c, uint8_t *device_list, uint8_t *device
 
     for(uint8_t i = 1; i < 128; i++)
     {
-        if(HAL_I2C_IsDeviceReady(hi2c, (uint16_t)(i<<1), 3, 5) == HAL_OK)
+        // Increased trials to 10 and timeout to 100ms for 10k pull-ups
+        if(HAL_I2C_IsDeviceReady(hi2c, (uint16_t)(i<<1), 10, 100) == HAL_OK)
         {
             device_list[*device_count] = i;
             (*device_count)++;
         }
-        HAL_Delay(2);
+        HAL_Delay(5);
     }
 }
 
